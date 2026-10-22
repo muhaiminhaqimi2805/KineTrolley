@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KineTrolley Mall Power Supply</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef3f8;
+    color: #172b4d;
+}
+
+header {
+    background: #12345a;
+    color: white;
+    padding: 24px 15px;
+    text-align: center;
+}
+
+header h1 { margin: 0 0 8px; }
+
+.container {
+    max-width: 1100px;
+    margin: 25px auto;
+    padding: 0 15px;
+}
+
+.card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 12px #0000000c;
+}
+
+h2 { margin-top: 0; }
+
+canvas {
+    width: 100%;
+    height: auto;
+    background: #f8fbff;
+    border: 1px solid #d8e2ed;
+    border-radius: 10px;
+    display: block;
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metric {
+    padding: 15px;
+    border-radius: 10px;
+    background: #f3f7fb;
+    border: 1px solid #dce6f0;
+    min-width: 0;
+}
+
+.metric p {
+    color: #52657a;
+    font-size: 13px;
+    margin: 0 0 8px;
+}
+
+.metric h3 {
+    margin: 0;
+    font-size: 23px;
+    overflow-wrap: anywhere;
+}
+
+label {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin-bottom: 20px;
+    accent-color: #1677d2;
+}
+
+button {
+    padding: 12px 17px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+button:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+.primary { background: #1677d2; color: white; }
+.secondary { background: #e5ebf1; color: #172b4d; }
+.connect { background: #16834a; color: white; }
+.disconnect { background: #b42318; color: white; }
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.bar {
+    height: 12px;
+    border-radius: 20px;
+    background: #dce5ed;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.fill {
+    height: 100%;
+    width: 0;
+    background: #22a06b;
+    transition: width .2s;
+}
+
+.status {
+    font-weight: bold;
+    margin-bottom: 0;
+}
+
+.flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.node {
+    padding: 13px;
+    text-align: center;
+    border: 1px solid #c8d8e8;
+    background: #edf5ff;
+    border-radius: 9px;
+    font-weight: bold;
+}
+
+.arrow { font-size: 23px; color: #1677d2; }
+
+.note {
+    color: #52657a;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.warning {
+    background: #fff4df;
+    border: 1px solid #f3d08b;
+    padding: 12px;
+    border-radius: 8px;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+@media(max-width:700px) {
+    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric h3 { font-size: 20px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>⚡ KineTrolley</h1>
+    <p>Mall Power Supply Integration Simulator</p>
+</header>
+
+<main class="container">
+
+<section class="card">
+    <h2>1. System Overview</h2>
+    <canvas id="scene" width="1000" height="390"
+        role="img"
+        aria-label="Schematic showing a trolley generator charging a battery, which connects through a power conversion system to a mall electrical supply.">
+    </canvas>
+    <p id="status" class="status" aria-live="polite">
+        Status: Trolley stopped. Mall connection disconnected.
+    </p>
+    <p class="note">
+        This is a conceptual energy-flow simulation. The mall connection represents
+        a controlled power interface, not a direct connection to building wiring.
+    </p>
+</section>
+
+<section class="card">
+    <h2>2. Energy Dashboard</h2>
+
+    <div class="metrics">
+        <div class="metric">
+            <p>Trolley Speed</p>
+            <h3><span id="speedValue">0.0</span> km/h</h3>
+        </div>
+
+        <div class="metric">
+            <p>Generated Power</p>
+            <h3><span id="generatedValue">0.00</span> W</h3>
+        </div>
+
+        <div class="metric">
+            <p>Battery Level</p>
+            <h3><span id="batteryValue">20.0</span>%</h3>
+            <div class="bar"><div id="batteryBar" class="fill"></div></div>
+        </div>
+
+        <div class="metric">
+            <p>Power Sent to Mall</p>
+            <h3><span id="mallPowerValue">0.00</span> W</h3>
+        </div>
+
+        <div class="metric">
+            <p>Energy Stored</p>
+            <h3><span id="storedValue">0.000</span> Wh</h3>
+        </div>
+
+        <div class="metric">
+            <p>Energy Supplied to Mall</p>
+            <h3><span id="exportedValue">0.000</span> Wh</h3>
+        </div>
+
+        <div class="metric">
+            <p>Energy Used by Mall Load</p>
+            <h3><span id="usedValue">0.000</span> Wh</h3>
+        </div>
+
+        <div class="metric">
+            <p>Power Interface</p>
+            <h3 id="interfaceValue" style="font-size:18px">Disconnected</h3>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <h2>3. Simulation Controls</h2>
+
+    <label for="speed">
+        <span>Trolley Speed</span>
+        <span id="speedLabel">0 km/h</span>
+    </label>
+    <input id="speed" type="range" min="0" max="6" step="0.5" value="0">
+
+    <label for="efficiency">
+        <span>Generator Efficiency</span>
+        <span id="effLabel">50%</span>
+    </label>
+    <input id="efficiency" type="range" min="10" max="80" step="5" value="50">
+
+    <label for="load">
+        <span>Mall Demonstration Load</span>
+        <span id="loadLabel">2 W</span>
+    </label>
+    <input id="load" type="range" min="0.5" max="5" step="0.5" value="2">
+
+    <div class="buttons">
+        <button class="primary" id="start">▶ Start Trolley</button>
+        <button class="secondary" id="stop">⏸ Stop Trolley</button>
+        <button class="connect" id="connect">🔌 Connect to Mall System</button>
+        <button class="disconnect" id="disconnect">Disconnect</button>
+        <button class="secondary" id="reset">↻ Reset</button>
+    </div>
+
+    <p class="note">
+        The demonstration load is a simulated low-power device. Energy readings
+        use illustrative assumptions and are not measurements from real hardware.
+    </p>
+</section>
+
+<section class="card">
+    <h2>4. Energy Flow</h2>
+
+    <div class="flow">
+        <div class="node">🛒<br>Wheel Movement</div>
+        <span class="arrow">→</span>
+        <div class="node">⚙️<br>Generator</div>
+        <span class="arrow">→</span>
+        <div class="node">🔋<br>Battery</div>
+        <span class="arrow">→</span>
+        <div class="node">🔌<br>Power Converter</div>
+        <span class="arrow">→</span>
+        <div class="node">🏬<br>Mall Load</div>
+    </div>
+
+    <p class="note">
+        The battery supplies energy through a suitable power converter to a
+        dedicated low-power mall load. When the trolley is stopped, the battery
+        can still supply the load until its available energy is depleted.
+    </p>
+
+    <div class="warning">
+        <strong>Real-world safety:</strong> Never connect a DIY battery directly
+        to mall mains wiring or a wall socket. Exporting electricity to a
+        building supply requires an approved grid-interconnection inverter,
+        electrical protection, and authorization from qualified professionals.
+        For a student prototype, use an isolated low-voltage DC demonstration
+        load instead.
+    </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+    const $ = id => document.getElementById(id);
+
+    const canvas = $("scene");
+    const ctx = canvas.getContext("2d");
+
+    let trolleyRunning = false;
+    let mallConnected = false;
+
+    let angle = 0;
+    let offset = 0;
+    let storedWh = 0;
+    let exportedWh = 0;
+    let usedWh = 0;
+
+    let lastTime = performance.now();
+
+    // Illustrative battery model, not hardware specifications.
+    const batteryCapacityWh = 5;
+    const initialBatteryWh = 1;
+
+    function batteryWh() {
+        return Math.min(
+            batteryCapacityWh,
+            initialBatteryWh + storedWh - exportedWh
+        );
+    }
+
+    function batteryPercent() {
+        return 100 * batteryWh() / batteryCapacityWh;
+    }
+
+    function drawWheel(x, y, rotation) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+
+        ctx.fillStyle = "#374151";
+        ctx.beginPath();
+        ctx.arc(0, 0, 26, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#d1d5db";
+        ctx.beginPath();
+        ctx.arc(0, 0, 17, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 3;
+
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -16);
+            ctx.stroke();
+            ctx.rotate(Math.PI / 2);
+        }
+
+        ctx.restore();
+    }
+
+    function drawBox(x, y, w, h, fill, title, subtitle) {
+        ctx.fillStyle = fill;
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = "#172b4d";
+        ctx.textAlign = "center";
+        ctx.font = "bold 15px Arial";
+        ctx.fillText(title, x + w / 2, y + 24);
+
+        ctx.font = "12px Arial";
+        ctx.fillText(subtitle, x + w / 2, y + 44);
+        ctx.textAlign = "left";
+    }
+
+    function drawArrow(x1, y1, x2, y2, active) {
+        ctx.strokeStyle = active ? "#16834a" : "#9ca3af";
+        ctx.fillStyle = active ? "#16834a" : "#9ca3af";
+        ctx.lineWidth = 4;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        const a = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(
+            x2 - 10 * Math.cos(a - Math.PI / 6),
+            y2 - 10 * Math.sin(a - Math.PI / 6)
+        );
+        ctx.lineTo(
+            x2 - 10 * Math.cos(a + Math.PI / 6),
+            y2 - 10 * Math.sin(a + Math.PI / 6)
+        );
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function drawScene() {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "#f8fbff";
+        ctx.fillRect(0, 0, w, h);
+
+        // Mall illustration
+        ctx.fillStyle = "#e6edf5";
+        ctx.fillRect(705, 55, 250, 260);
+
+        ctx.fillStyle = "#12345a";
+        ctx.fillRect(705, 55, 250, 42);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.font = "bold 19px Arial";
+        ctx.fillText("SHOPPING MALL", 830, 82);
+
+        ctx.fillStyle = "#c8dff2";
+        for (let x = 725; x < 940; x += 53) {
+            ctx.fillRect(x, 120, 35, 90);
+        }
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillRect(725, 240, 210, 40);
+
+        ctx.fillStyle = "#172b4d";
+        ctx.font = "bold 13px Arial";
+        ctx.fillText("LOW-POWER LOAD", 830, 264);
+        ctx.textAlign = "left";
+
+        // --- TROLLEY START ---
+        ctx.save();
+        ctx.translate(offset, 0);
+
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 7;
+
+        ctx.beginPath();
+        ctx.moveTo(35, 100);
+        ctx.lineTo(65, 100);
+        ctx.lineTo(92, 200);
+        ctx.lineTo(245, 200);
+        ctx.lineTo(270, 125);
+        ctx.lineTo(70, 125);
+        ctx.stroke();
+
+        ctx.fillStyle = "#dbeafe";
+        ctx.fillRect(83, 130, 177, 55);
+
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 2;
+
+        for (let x = 110; x < 255; x += 30) {
+            ctx.beginPath();
+            ctx.moveTo(x, 130);
+            ctx.lineTo(x, 185);
+            ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(100, 215);
+        ctx.lineTo(125, 245);
+        ctx.lineTo(245, 245);
+        ctx.lineTo(245, 200);
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        drawWheel(125, 260, angle);
+        drawWheel(245, 260, angle);
+
+        // Generator
+        ctx.fillStyle = "#f59e0b";
+        ctx.fillRect(120, 215, 42, 25);
+        ctx.fillStyle = "#172b4d";
+        ctx.font = "bold 11px Arial";
+        ctx.fillText("GEN", 128, 231);
+
+        // Energy Flow Arrow from Generator to Battery (inside trolley)
+        drawArrow(165, 227, 185, 227, trolleyRunning && Number($("speed").value) > 0);
+
+        // Battery (Attached to Trolley)
+        ctx.fillStyle = "#d1fae5";
+        ctx.fillRect(190, 210, 50, 30);
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(190, 210, 50, 30);
+
+        // Battery Fill
+        ctx.fillStyle = "#22a06b";
+        ctx.fillRect(191, 211, 48 * batteryPercent() / 100, 28);
+
+        // Battery Label with semi-transparent background for readability
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.fillRect(199, 218, 30, 14);
+        ctx.fillStyle = "#172b4d";
+        ctx.font = "bold 11px Arial";
+        ctx.fillText("BAT", 203, 229);
+
+        ctx.restore();
+        // --- TROLLEY END ---
+
+        // Converter
+        drawBox(400, 180, 130, 65, "#dbeafe", "CONVERTER", "Power interface");
+
+        // Energy flow from Trolley Battery to Converter
+        // The start point moves dynamically with 'offset'
+        drawArrow(offset + 245, 225, 395, 212, mallConnected && batteryWh() > 0);
+
+        // Energy flow from Converter to Mall
+        drawArrow(540, 212, 695, 212, mallConnected && batteryWh() > 0);
+
+        // Labels and text
+        ctx.fillStyle = "#172b4d";
+        ctx.font = "bold 16px Arial";
+        ctx.fillText("TROLLEY ENERGY HARVESTING", 25, 35);
+
+        ctx.font = "13px Arial";
+        ctx.fillStyle = "#52657a";
+        ctx.fillText("Wheel → Generator → Battery → Converter → Mall load", 25, 55);
+
+        ctx.fillStyle = mallConnected ? "#16834a" : "#b42318";
+        ctx.font = "bold 13px Arial";
+        ctx.fillText(
+            mallConnected ? "MALL INTERFACE: CONNECTED" : "MALL INTERFACE: DISCONNECTED",
+            400, 285
+        );
+
+        ctx.fillStyle = "#52657a";
+        ctx.font = "12px Arial";
+        ctx.fillText("Concept diagram — not to scale", 25, 365);
+    }
+
+    function updateDashboard(power) {
+        $("speedValue").textContent =
+            trolleyRunning ? Number($("speed").value).toFixed(1) : "0.0";
+
+        $("generatedValue").textContent = power.toFixed(2);
+
+        $("batteryValue").textContent = batteryPercent().toFixed(1);
+
+        $("batteryBar").style.width = batteryPercent() + "%";
+
+        $("mallPowerValue").textContent =
+            mallConnected && batteryWh() > 0
+                ? Math.min(Number($("load").value), batteryWh() * 3600).toFixed(2)
+                : "0.00";
+
+        $("storedValue").textContent = storedWh.toFixed(4);
+        $("exportedValue").textContent = exportedWh.toFixed(4);
+        $("usedValue").textContent = usedWh.toFixed(4);
+
+        $("interfaceValue").textContent =
+            mallConnected ? "Connected" : "Disconnected";
+
+        $("interfaceValue").style.color =
+            mallConnected ? "#16834a" : "#b42318";
+
+        $("speedLabel").textContent = $("speed").value + " km/h";
+        $("effLabel").textContent = $("efficiency").value + "%";
+        $("loadLabel").textContent = $("load").value + " W";
+
+        if (mallConnected && batteryWh() > 0) {
+            $("status").textContent =
+                trolleyRunning
+                    ? "Status: Trolley generating energy; battery supplying the mall load."
+                    : "Status: Trolley stopped; battery supplying the mall load.";
+
+            $("status").style.color = "#16834a";
+        } else if (mallConnected) {
+            $("status").textContent =
+                "Status: Mall interface connected, but battery is depleted.";
+
+            $("status").style.color = "#b45309";
+        } else {
+            $("status").textContent =
+                trolleyRunning
+                    ? "Status: Trolley moving; electricity is being stored in the battery."
+                    : "Status: Trolley stopped. Mall connection disconnected.";
+
+            $("status").style.color = "#52657a";
+        }
+    }
+
+    function animate(now) {
+        const dt = Math.min((now - lastTime) / 1000, 0.1);
+        lastTime = now;
+
+        const speed = trolleyRunning ? Number($("speed").value) : 0;
+        const efficiency = Number($("efficiency").value) / 100;
+        const loadW = Number($("load").value);
+
+        // Illustrative generator model.
+        const generatedW = trolleyRunning
+            ? 0.45 * speed * efficiency
+            : 0;
+
+        // Generated energy is stored in the battery.
+        const generationWh = generatedW * dt / 3600;
+
+        const availableCapacityWh =
+            Math.max(0, batteryCapacityWh - batteryWh());
+
+        const acceptedWh = Math.min(
+            generationWh,
+            availableCapacityWh
+        );
+
+        storedWh += acceptedWh;
+
+        // Simulate a mall load supplied by the battery.
+        if (mallConnected && batteryWh() > 0) {
+            // Conversion efficiency from battery to demonstration load.
+            const converterEfficiency = 0.90;
+            const requestedWh = loadW * dt / 3600;
+
+            const batteryEnergyAvailableWh = batteryWh();
+            const batteryDrawWh = Math.min(
+                requestedWh / converterEfficiency,
+                batteryEnergyAvailableWh
+            );
+
+            exportedWh += batteryDrawWh;
+            usedWh += batteryDrawWh * converterEfficiency;
+        }
+
+        if (speed > 0) {
+            angle += speed * dt * 2.5;
+            offset += speed * dt * 4;
+
+            if (offset > 60) offset = -30;
+        }
+
+        updateDashboard(generatedW);
+        drawScene();
+
+        requestAnimationFrame(animate);
+    }
+
+    $("start").addEventListener("click", () => {
+        trolleyRunning = true;
+
+        if (Number($("speed").value) === 0) {
+            $("speed").value = 2;
+        }
+    });
+
+    $("stop").addEventListener("click", () => {
+        trolleyRunning = false;
+        $("speed").value = 0;
+    });
+
+    $("connect").addEventListener("click", () => {
+        mallConnected = true;
+    });
+
+    $("disconnect").addEventListener("click", () => {
+        mallConnected = false;
+    });
+
+    $("reset").addEventListener("click", () => {
+        trolleyRunning = false;
+        mallConnected = false;
+
+        angle = 0;
+        offset = 0;
+        storedWh = 0;
+        exportedWh = 0;
+        usedWh = 0;
+
+        $("speed").value = 0;
+        $("efficiency").value = 50;
+        $("load").value = 2;
+    });
+
+    $("speed").addEventListener("input", () => {
+        if (Number($("speed").value) === 0) {
+            trolleyRunning = false;
+        }
+    });
+
+    $("efficiency").addEventListener("input", () => {});
+    $("load").addEventListener("input", () => {});
+
+    updateDashboard(0);
+    drawScene();
+    requestAnimationFrame(animate);
+})();
+</script>
+
+</body>
+</html>
