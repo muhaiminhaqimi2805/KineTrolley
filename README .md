@@ -1,4 +1,4 @@
-# KineTrolley: Kinetic Energy Harvesting System
+# KineTrOLLEY SUPERMARKET POWER SUPPLY
 
 ## Project Overview
 
