@@ -38,7 +38,7 @@ Imagine pushing a trolley at a supermarket. The wheels keep turning as we move, 
 
 1. Download or clone this repository.
 2. Open the project folder in Visual Studio Code.
-3. Open `index.html` in a web browser.
+3. Open `trolley_2.html` in a web browser.
 4. Alternatively, use the Live Server extension in VS Code.
 5. Use the simulation controls to start the trolley and connect the simulated battery to the mall load.
 
